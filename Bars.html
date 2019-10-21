@@ -1,70 +1,99 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>bar chart</title>
-    <script src="https://d3js.org/d3.v5.min.js"></script>
-</head>
+<meta charset="utf-8">
+<style>
+body {
+  font: 10px sans-serif;
+}
+.y.axisRight text {
+    fill: orange;
+}
+.y.axisLeft text {
+    fill: steelblue;
+}
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.bar1 {
+  fill: steelblue;
+}
+.bar2 {
+  fill: orange;
+}
+.x.axis path {
+  display: none;
+}
+</style>
 <body>
-
- <div id="vis"></div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+var margin = {top: 80, right: 80, bottom: 80, left: 80},
+    width = 600 - margin.left - margin.right,
+    height = 400 - margin.top - margin.bottom;
+var x = d3.scale.ordinal()
+    .rangeRoundBands([0, width], .1);
+var y0 = d3.scale.linear().domain([300, 1100]).range([height, 0]),
+y1 = d3.scale.linear().domain([20, 80]).range([height, 0]);
+var xAxis = d3.svg.axis()
+    .scale(x)
+    .orient("bottom");
+// create left yAxis
+var yAxisLeft = d3.svg.axis().scale(y0).ticks(4).orient("left");
+// create right yAxis
+var yAxisRight = d3.svg.axis().scale(y1).ticks(6).orient("right");
+var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+    .attr("class", "graph")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+d3.tsv("data.tsv", type, function(error, data) {
+  x.domain(data.map(function(d) { return d.year; }));
+  y0.domain([0, d3.max(data, function(d) { return d.money; })]);
   
- <script>
-   // SQL que sale de https://data.world/makeovermonday/2019w31/
-var url = "https://download.data.world/s/js3a66ji7574lojgso36jqk7nk2o42";
-/**
-var datos = [
-  {"disease":"Primary and Secondary Syphilis","sum":205913},
-  {"disease":"Gonorrhea","sum":6454097},
-  {"disease":"Chlamydia","sum":18991264}
-]; 
-**/
-// leyendo el CSV de la URL
-d3.csv( url )
-  .then(function(data) {
-    var max = 0;
-    data.forEach(function(d) {
-      d.sum = +d.sum;
-      if (d.sum > max) {
-        max = d.sum;
-      }
-    });
-    console.log(max);
-    doit(data,max);
-  })
-  .catch(function(error){
-     console.log(error);  
-  })
-function doit(datos,maximo) {
-  var max_w = 350;
-  var x = d3.scaleLinear()
-    .domain([0, maximo])
-    .range([0, max_w]);
-var y = d3.scaleLinear()
-    .domain([0, 2])
-    .range([0, 200]);
-var svg = d3.select("div#vis").append("svg")
-  .attr("width",500)
-  .attr("height",300);
-svg.selectAll("rect").data(datos).enter().append("rect")
-   .attr("fill","steelblue")
-   .attr("x", 10)
-   .attr("y", function(d,i) {return y(i);})
-   .attr("width", function(d,i) {return x(d.sum);})
-   .attr("height",99)
-svg.selectAll("txt_tit").data(datos).enter().append("text")
-   .attr("class","txt_tit")
-   .attr("x", function(d) {return 20 + x(d.sum);}  )
-   .attr("y", function(d,i) {return 30+y(i);})
-   .text( function(d) {return d.disease;}  )
-svg.selectAll("txt_val").data(datos).enter().append("text")
-   .attr("class","txt_val")
-   .attr("x", function(d) {return 20 + x(d.sum);}  )
-   .attr("y", function(d,i) {return 60+y(i);})
-   .text( function(d) {return d.sum.toLocaleString();}  )
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(xAxis);
+  svg.append("g")
+	  .attr("class", "y axis axisLeft")
+	  .attr("transform", "translate(0,0)")
+	  .call(yAxisLeft)
+	.append("text")
+	  .attr("y", 6)
+	  .attr("dy", "-2em")
+	  .style("text-anchor", "end")
+	  .style("text-anchor", "end")
+	  .text("Dollars");
+	
+  svg.append("g")
+	  .attr("class", "y axis axisRight")
+	  .attr("transform", "translate(" + (width) + ",0)")
+	  .call(yAxisRight)
+	.append("text")
+	  .attr("y", 6)
+	  .attr("dy", "-2em")
+	  .attr("dx", "2em")
+	  .style("text-anchor", "end")
+	  .text("#");
+  bars = svg.selectAll(".bar").data(data).enter();
+  bars.append("rect")
+      .attr("class", "bar1")
+      .attr("x", function(d) { return x(d.year); })
+      .attr("width", x.rangeBand()/2)
+      .attr("y", function(d) { return y0(d.money); })
+	  .attr("height", function(d,i,j) { return height - y0(d.money); }); 
+  bars.append("rect")
+      .attr("class", "bar2")
+      .attr("x", function(d) { return x(d.year) + x.rangeBand()/2; })
+      .attr("width", x.rangeBand() / 2)
+      .attr("y", function(d) { return y1(d.number); })
+	  .attr("height", function(d,i,j) { return height - y1(d.number); }); 
+});
+function type(d) {
+  d.money = +d.money;
+  return d;
 }
 </script>
-  
-</body>
-</html>
